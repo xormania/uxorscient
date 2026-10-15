@@ -9,12 +9,17 @@ The application owns its installed UXor source and business logic.
 ## Install in a Symfony application
 
 Until a Packagist release is published, configure the source repository and select
-the development branch:
+the promoted `master` branch:
 
 ```sh
 composer config repositories.uxorscient vcs https://github.com/xormania/uxorscient
 composer require --dev xormania/uxorscient:dev-master
 ```
+
+`master` is the default and promotion branch. Ongoing work integrates on `dev`;
+select `dev-dev` explicitly only when testing that development work. Both branch
+versions have Composer's development stability. Package publication remains a
+separate release action.
 
 Run commands in the application's actual PHP environment. For a new Mate setup:
 
@@ -81,6 +86,17 @@ companion capabilities and their validation.
 ## Contributing
 
 Read [CONTRIBUTING.md](https://github.com/xormania/uxorscient/blob/master/CONTRIBUTING.md). Changes go through focused pull requests,
-green checks and the owner's requested reviews before merging.
+green checks and the owner's requested reviews before merging. Start work from
+`dev` and target `dev` explicitly; completed work is promoted to the default
+`master` branch in a separate PR. The
+[GitHub workflow](https://github.com/xormania/uxorscient/blob/master/docs/github.md)
+describes ownership, branch settings and promotions.
+
+For questions and bugs, read
+[SUPPORT.md](https://github.com/xormania/uxorscient/blob/master/SUPPORT.md).
+Report vulnerabilities using
+[SECURITY.md](https://github.com/xormania/uxorscient/blob/master/SECURITY.md), and
+follow the [code of conduct](https://github.com/xormania/uxorscient/blob/master/CODE_OF_CONDUCT.md)
+when participating.
 
 MIT licensed. Maintained by xormania.
