@@ -1,0 +1,11 @@
+# The broad rule keeps all work under the maintainer's ownership. GitHub uses
+# CODEOWNERS from the PR's base branch when requesting and enforcing reviews.
+# Explicit entries keep changes to the repository's trust controls visible.
+* @xormania
+/.github/ @xormania
+/AGENTS.md @xormania
+/CONTRIBUTING.md @xormania
+/SECURITY.md @xormania
+/CODE_OF_CONDUCT.md @xormania
+/docs/github.md @xormania
+/docs/releasing.md @xormania

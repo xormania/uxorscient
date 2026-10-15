@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Help and questions
+    url: https://github.com/xormania/uxorscient/blob/master/SUPPORT.md
+    about: Read the support guide and where to report an issue.
+  - name: Report a security vulnerability
+    url: https://github.com/xormania/uxorscient/security/policy
+    about: Follow the private reporting instructions; do not disclose vulnerabilities in public issues.

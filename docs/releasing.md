@@ -4,6 +4,25 @@ Use a clean reviewed checkout and the application's actual PHP environment. Thes
 steps prepare evidence for a maintainer-selected release; version tags and registry
 publication are separate maintainer actions.
 
+## Promotion branches
+
+`master` remains the default branch. Develop and review ordinary changes through
+PRs into `dev`; prepare a promotion PR from `dev` to `master` when its selected
+work is ready. Follow the existing PR template, link the included changes, record
+the tested commit and satisfy the required reviews and GitHub rules. Merge with a
+merge commit, preserving the history already reviewed on `dev`.
+
+After promotion, use a sync branch based on `dev` to merge `master`, then merge
+that sync PR into `dev`. This brings the promotion commit back without resetting
+either shared branch. Keep both long-lived branches; only finished work branches
+are candidates for deletion. See [GitHub workflow](github.md).
+
+Promoting documentation or tooling does not publish a package. Only select a
+version, tag the promoted commit and publish when the maintainer authorizes that
+release. Never move a published version tag to different code; publish a new
+version for a correction. The exact first version and registry setup remain
+release decisions, not side effects of repository setup.
+
 ## Reference and package
 
 Choose the UXor source revision deliberately. In a clean checkout of that revision,

@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a reproducible problem with the companion or its development tools.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For vulnerabilities, follow the security policy instead of posting details here.
+        Use synthetic examples and remove credentials, private URLs and personal data.
+        If the cause is uncertain, report the observed behavior without guessing its owner.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What were you trying to do, and what happened?
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions and environment
+      description: Companion version or commit; PHP, Symfony and Mate versions; relevant UXor revision; native or Docker setup. State anything unknown.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Minimal steps or a small public example. Include the command or operation and relevant input.
+    validations:
+      required: true
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected and actual behavior
+      description: Separate what the companion reported from what the application did.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Relevant output or screenshots
+      description: Optional sanitized evidence. Do not paste an entire environment dump.

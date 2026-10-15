@@ -1,9 +1,21 @@
 # Developing UXorscient
 
+Start ordinary work from `dev`, and target that branch in your PR. `master` stays
+the default branch and receives promotions. Use separate worktrees for concurrent
+changes. [Contributing](../CONTRIBUTING.md) and [GitHub workflow](github.md) describe
+reviews, merge commits and promotion synchronization.
+
 The repository root is the distributable Composer library. `dev/app` is a
 separate Symfony application that consumes it through a Composer path repository.
 Its own autoloading, runtime dependencies, configuration and generated cache stay
 inside that application. It has no sibling UXor recipe paths and no database.
+
+The fixture explicitly assigns the local path dependency the synthetic version
+`dev-master` in its Composer repository options. This selects the current checkout,
+including a feature branch, rather than downloading GitHub's `master`. Keep that
+override and its matching requirement together. A remote consumer selects
+`dev-master` for promoted work or `dev-dev` for the integration branch; these are
+different from the fixture's local override.
 
 The fixture starts on Symfony 7.4 and UX 3.5.1 with PHP >=8.4. The prepared Docker
 runtime uses PHP 8.5. A supported-version claim belongs to the combinations that
