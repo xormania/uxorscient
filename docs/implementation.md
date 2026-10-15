@@ -13,9 +13,32 @@ this package and the companion installed as a development dependency elsewhere.
 | Composable access | Verified Serena/Mate workflow and an appropriate adapter | Observed task and partial-failure recovery |
 | Release proof | Independent archive consumer and support matrix | Repeatable installation and runtime with development tools omitted |
 
-The foundation is the first implementation slice. Subsequent PRs record completed
-capabilities and their actual evidence here. Package publication is a later release
-action; a repository alone does not establish Packagist availability.
+The companion now includes pinned references for 64 components, three task skills,
+seven CLI/Mate operations and selected-component static wiring checks. An actual
+archive consumer verifies first setup, repeated initialization, Composer updates,
+explicit Mate refresh and preservation of project instructions and a custom component.
+It also boots and renders after development dependencies are removed.
+
+CLI and Mate are the initial product interfaces. The composable-access check uses
+Serena's public shell, LSP and edit APIs against the same mounted application;
+[the access decision](composable-access.md) records its boundaries. The practical
+browser workflow and fresh-agent evaluation are separate acceptance subjects.
+Package publication is a later release action; a repository alone does not establish
+Packagist availability.
+
+## Exercised support combination
+
+| Part | Executed combination |
+| --- | --- |
+| PHP and framework | PHP 8.4; Symfony 7.4 |
+| UX and agent tooling | Symfony UX 3.5; Mate 0.14; native Makers |
+| Composer lifecycle | Composer 2; actual archive install/update and explicit Mate discovery |
+| Assets | The current UXor AssetMapper profile; custom profiles return explicit unknowns |
+| Serena | Pinned external prepared provider; real symbol/session/recovery checks in hosted CI |
+
+Composer constraints permit additional versions, but those constraints do not
+establish executed coverage. Native tooling runs in the selected application's
+PHP environment. Browser coverage records its own engine and workflow evidence.
 
 ## Reuse
 

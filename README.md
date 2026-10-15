@@ -25,10 +25,18 @@ vendor/bin/mate discover
 vendor/bin/mate tools:list --format=json
 ```
 
-An initialized Mate project discovers the extension through its Composer plugin;
-run discover explicitly when the plugin is disabled. Existing project instructions
-and configuration remain project-owned. Follow Mate's supported setup when its
-installed version needs an additional step.
+After installing or updating the companion in an initialized Mate project,
+refresh its instructions and skills explicitly:
+
+```sh
+composer update xormania/uxorscient
+vendor/bin/mate discover
+```
+
+This sequence also works when Mate's Composer plugin does not refresh discovery.
+With Mate 0.14 and Composer 2.10.3 running from a PHAR, the plugin resolved Composer's
+own root instead of the consuming application. Explicit discovery uses the actual
+application and preserves project-authored instructions and configuration.
 
 UXorscient supplies three skills (setup, build, verify), references for 64 UXor
 components and seven tools for discovery, project inspection, first-setup checks
@@ -55,9 +63,10 @@ guidance alongside the pinned upstream component references.
 
 The bundled reference identifies UXor revision
 40d957cd1ea7766ac0dee742816948ce5ae05bc3. Its documentation is generated from UXor;
-[reference maintenance](https://github.com/xormania/uxorscient/blob/master/docs/reference-maintenance.md) explains updates. Updating
-the companion refreshes guidance; installed application components remain owned by
-the consuming project.
+[reference maintenance](https://github.com/xormania/uxorscient/blob/master/docs/reference-maintenance.md) explains updates. Composer updates
+the companion's code and references; Mate discovery refreshes the installed agent
+guidance and skills. Installed application components remain owned by the consuming
+project.
 
 ## Development
 

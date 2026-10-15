@@ -40,7 +40,7 @@ final class Operations
                 'workflow' => $this->references->workflow((string) ($arguments['name'] ?? ''),
                     (int) ($arguments['offset'] ?? 0), (int) ($arguments['limit'] ?? 12000)),
                 'inspect' => $this->inspector->inspect($root),
-                'doctor' => $this->diagnose($root),
+                'doctor' => $this->diagnose($root, (string) ($arguments['component'] ?? ''), (string) ($arguments['asset_profile'] ?? 'auto')),
                 'tools' => $this->nativeTools->discover($root, (string) ($arguments['kind'] ?? 'maker'),
                     (string) ($arguments['name'] ?? ''), (int) ($arguments['limit'] ?? 20)),
                 default => throw new \InvalidArgumentException('Unknown operation. Use catalog, component, reference, workflow, inspect, doctor, or tools.'),
@@ -62,14 +62,16 @@ final class Operations
         return $result;
     }
 
-    private function diagnose(string $root): array
+    private function diagnose(string $root, string $component, string $assetProfile): array
     {
         $project = $this->inspector->inspect($root);
-        $findings = $this->doctor->findings($project);
+        $selected = '' === $component ? null : $this->references->component($component);
+        $findings = $this->doctor->findings($project, $selected, $assetProfile);
         $counts = array_count_values(array_column($findings, 'status'));
         return ['status' => ($counts['unknown'] ?? 0) > 0 ? 'incomplete' : 'completed',
             'summary' => sprintf('%d failed checks; %d checks need project-specific verification.', $counts['fail'] ?? 0, $counts['unknown'] ?? 0),
             'project' => ['root' => $project['root'], 'php_binary' => $project['php_binary']],
+            'selected_component' => '' === $component ? null : $component, 'asset_profile' => $assetProfile,
             'findings' => $findings, 'counts' => $counts];
     }
 }

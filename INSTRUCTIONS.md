@@ -21,3 +21,7 @@ Run all project operations in the application's configured PHP environment. The
 standalone vendor/bin/uxorscient CLI exposes the same services and accepts
 --format=json. Project inspection defaults to the current directory there; select
 --project-root explicitly when working across applications or worktrees.
+
+After updating xormania/uxorscient with Composer, run vendor/bin/mate discover in
+the application to refresh its agent instructions and skills. Preserve the
+project-authored content around Mate's managed instruction block.

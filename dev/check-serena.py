@@ -34,7 +34,7 @@ def cell(client, code: str, *, expected_error: str | None = None) -> str:
     return text
 
 
-def exercise(client_type, launch: list[str], scratch: Path, protected: Path, timeout: float) -> dict:
+def exercise(client_type, launch: list[str], scratch: Path, protected: Path, timeout: float, task=None) -> dict:
     """Only scratch is mutable; a reconnect must keep source and discard variables."""
     original_hash = hashlib.sha256(protected.read_bytes()).hexdigest()
     relative = scratch.relative_to(ROOT).as_posix()
@@ -56,11 +56,18 @@ def exercise(client_type, launch: list[str], scratch: Path, protected: Path, tim
             raise RuntimeError("REPL variables did not survive a second cell")
         checks.append("persistent-repl-variable")
 
+        if task is not None:
+            checks.extend(task.discover(client, scratch))
+
         cell(client, f"s.edit.replace_content({relative!r}, 'before-probe', 'after-probe', 'literal')\nraise RuntimeError('uxorscient-deliberate-failure')",
              expected_error="uxorscient-deliberate-failure")
         if "after-probe" not in scratch.read_text():
             raise RuntimeError("The source edit made before the deliberate error did not remain inspectable")
         checks.append("source-edit-survives-failed-cell")
+        expected_source = "after-probe"
+        if task is not None:
+            checks.extend(task.recover(client, scratch))
+            expected_source = "recovered-probe"
         client.close()
         client = None
 
@@ -71,13 +78,18 @@ def exercise(client_type, launch: list[str], scratch: Path, protected: Path, tim
             raise RuntimeError("The reconnect unexpectedly reused the previous session identity")
         if cell(client, "'uxorscient_probe' in globals()").strip() != "False":
             raise RuntimeError("The reconnect retained the old REPL variable")
-        if "after-probe" not in scratch.read_text():
+        if expected_source not in scratch.read_text():
             raise RuntimeError("The reconnect lost the earlier source edit")
+        if task is not None and "keep-this-project-value" not in scratch.read_text():
+            raise RuntimeError("The reconnect lost the unrelated application customization")
         checks.append("reconnect-resets-variables-preserves-source")
         if hashlib.sha256(protected.read_bytes()).hexdigest() != original_hash:
             raise RuntimeError("The protected fixture controller changed during Serena verification")
         checks.append("fixture-controller-unchanged")
-        return {"status": "passed", "checks": checks, "controller_sha256": original_hash}
+        result = {"status": "passed", "checks": checks, "controller_sha256": original_hash}
+        if task is not None:
+            result["composition"] = task.evidence()
+        return result
     finally:
         if client is not None:
             client.close()
@@ -86,6 +98,7 @@ def exercise(client_type, launch: list[str], scratch: Path, protected: Path, tim
 def main(arguments=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--startup-timeout", type=float, default=600)
+    parser.add_argument("--companion", action="store_true", help="Also compose installed companion/Mate capabilities and recover customized source")
     args = parser.parse_args(arguments)
     if args.startup_timeout <= 0:
         parser.error("--startup-timeout must be positive")
@@ -109,9 +122,14 @@ def main(arguments=None) -> int:
         scratch = ROOT / f"dev/app/src/SerenaRecoveryProbe{token}.php"
         descriptor = os.open(scratch, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(descriptor, "w") as source:
-            source.write("<?php\nnamespace App;\nfinal class SerenaRecoveryProbe" + token + " { public const STATE = 'before-probe'; }\n")
+            source.write("<?php\nnamespace App;\nfinal class SerenaRecoveryProbe" + token
+                         + " { public const STATE = 'before-probe'; public const APPLICATION_CUSTOMIZATION = 'keep-this-project-value'; }\n")
         try:
-            evidence = exercise(client.MCP, [sys.executable, str(ROOT / "dev/run.py"), "serena"], scratch, protected, args.startup_timeout)
+            task = None
+            if args.companion:
+                from composition import CompositionTask
+                task = CompositionTask(cell, ROOT)
+            evidence = exercise(client.MCP, [sys.executable, str(ROOT / "dev/run.py"), "serena"], scratch, protected, args.startup_timeout, task)
             evidence.update({
                 "provider_source": runner.XORDER_REVISION,
                 "image": runner.locked_image(ROOT / "dev/serena-support.lock.json"),

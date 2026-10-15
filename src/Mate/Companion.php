@@ -36,10 +36,15 @@ final class Companion
         return ResponseEncoder::encodeUntrusted($this->operations->run('inspect', ['project_root' => $this->projectRoot]));
     }
 
-    #[MateTool('uxorscient_doctor', description: 'Check first-setup runtime dependency placement and report remaining UXor integration unknowns.')]
-    public function doctor(): string
+    /**
+     * @param string $component Optional exact installed component name from the catalog.
+     * @param string $assetProfile auto detects AssetMapper conventions; custom leaves relocated or alternative wiring for project-specific verification.
+     */
+    #[MateTool('uxorscient_doctor', description: 'Check runtime dependency placement and selected-component static asset/controller wiring, with explicit runtime unknowns.')]
+    public function doctor(string $component = '', string $assetProfile = 'auto'): string
     {
-        return ResponseEncoder::encodeUntrusted($this->operations->run('doctor', ['project_root' => $this->projectRoot]));
+        return ResponseEncoder::encodeUntrusted($this->operations->run('doctor',
+            ['project_root' => $this->projectRoot, 'component' => $component, 'asset_profile' => $assetProfile]));
     }
 
     /**

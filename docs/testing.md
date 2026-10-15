@@ -52,6 +52,15 @@ and repeats initialization with existing consumer instructions before and after
 the managed block. Mate can refresh its own managed content; consumer-authored
 content must survive.
 
+The same consumer then updates between two temporary archive versions with different
+instruction and build-skill content. It checks Composer's installed version and
+distribution metadata, runs the documented `vendor/bin/mate discover` refresh,
+and verifies that the new guidance replaces the old content while consumer
+instructions and a customized application component remain intact. No source
+checkout is linked into either installation, and no vendor files are patched.
+The explicit refresh matters: Mate 0.14.0's plugin resolved Composer 2.10.3's own
+root inside its PHAR in this check, leaving application guidance unchanged.
+
 Finally it removes development dependencies, clears the production container and
 boots the application to render both its health endpoint and Twig page. This
 proves the companion can remain development-only. Full Turbo browser interaction
