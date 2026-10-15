@@ -5662,10 +5662,22 @@
             "require-dev": {
                 "phpunit/phpunit": "^12.5"
             },
+            "bin": [
+                "bin/uxorscient"
+            ],
             "type": "library",
             "extra": {
                 "ai-mate": {
-                    "extension": false
+                    "scan-dirs": [
+                        "src/Mate"
+                    ],
+                    "includes": [
+                        "config/services.php"
+                    ],
+                    "instructions": "INSTRUCTIONS.md",
+                    "skills": [
+                        "skills"
+                    ]
                 }
             },
             "autoload": {
@@ -5677,6 +5689,16 @@
                 "psr-4": {
                     "Xormania\\Uxorscient\\Tests\\": "tests/"
                 }
+            },
+            "archive": {
+                "exclude": [
+                    "/.git"
+                ]
+            },
+            "scripts": {
+                "test": [
+                    "@php vendor/bin/phpunit"
+                ]
             },
             "license": [
                 "MIT"
