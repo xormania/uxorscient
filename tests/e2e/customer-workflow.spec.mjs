@@ -30,6 +30,16 @@ const test = base.extend({
     },
 });
 
+async function openCustomerEditor(page, name) {
+    await page.getByRole('link', { name: `Edit ${name}`, exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Edit customer', exact: true });
+    await expect(dialog).toBeVisible();
+    // Wait for the modal's initial focus before typing in another field.
+    await expect(dialog.getByRole('textbox', { name: 'Name', exact: true })).toBeFocused();
+
+    return dialog;
+}
+
 // Frame completion is the rendered DOM plus URL; a stream completion is its resulting DOM.
 // Ordinary frame/stream updates deliberately do not wait for turbo:load.
 test('search, edit validation, save streams and history work in one application', async ({ page, expectedHttpErrors }) => {
@@ -63,10 +73,7 @@ test('search, edit validation, save streams and history work in one application'
     await expect(page.locator('#customers-row-3')).toHaveCount(0);
     const listUrl = page.url();
 
-    await page.getByRole('link', { name: 'Edit Ada Lovelace', exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: 'Edit customer', exact: true });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('textbox', { name: 'Name', exact: true })).toBeFocused();
+    const dialog = await openCustomerEditor(page, 'Ada Lovelace');
     await dialog.getByRole('textbox', { name: 'Email', exact: true }).fill('invalid');
     expectedHttpErrors.set(new URL(await dialog.locator('form').getAttribute('action'), page.url()).href, 422);
     const invalid = page.waitForResponse((response) => response.url().includes('/customers/1/edit') && response.request().method() === 'POST');
@@ -119,8 +126,7 @@ test('ordinary browser submission has server validation and a redirect after sav
 test('email sorting retains the current search, pagination and Turbo history', async ({ page }) => {
     await page.goto('/customers?source=email-sort');
     // Break the seed data's matching name/email order through the real editor.
-    await page.getByRole('link', { name: 'Edit Ada Lovelace', exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: 'Edit customer', exact: true });
+    const dialog = await openCustomerEditor(page, 'Ada Lovelace');
     await dialog.getByRole('textbox', { name: 'Email', exact: true }).fill('z.ada@customer.test');
     await dialog.getByRole('button', { name: 'Save customer' }).click();
     await expect(dialog).toHaveCount(0);
@@ -170,7 +176,7 @@ test('email sorting retains the current search, pagination and Turbo history', a
     await assertEmailState('desc', 2, ['customers-row-2']);
 
     // A save on an email-sorted page keeps that context when the row moves away.
-    await page.getByRole('link', { name: 'Edit Grace Hopper', exact: true }).click();
+    await openCustomerEditor(page, 'Grace Hopper');
     await dialog.getByRole('textbox', { name: 'Email', exact: true }).fill('zz.grace@customer.test');
     await dialog.getByRole('button', { name: 'Save customer' }).click();
     await expect(dialog).toHaveCount(0);
@@ -182,8 +188,7 @@ test('email sorting retains the current search, pagination and Turbo history', a
 
 test('a saved row leaving the active search restores focus to search', async ({ page }) => {
     await page.goto('/customers?q=Ada');
-    await page.getByRole('link', { name: 'Edit Ada Lovelace', exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: 'Edit customer', exact: true });
+    const dialog = await openCustomerEditor(page, 'Ada Lovelace');
     await dialog.getByRole('textbox', { name: 'Name', exact: true }).fill('Augusta King');
     await dialog.getByRole('textbox', { name: 'Email', exact: true }).fill('augusta@example.test');
     await dialog.getByRole('button', { name: 'Save customer' }).click();
