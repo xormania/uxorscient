@@ -88,13 +88,13 @@ The example adapts the demo's request-scoped CSP nonce approach. A long-lived PH
 
 ## Reference implementation
 
-The public fixture lives in the UXorscient repository. These links follow `master`; use the corresponding UXorscient release or commit when reproducing an earlier package version:
+The public fixture lives in the UXorscient repository. These links are pinned to an existing, independently verified fixture revision so they remain usable before a later release is merged:
 
-- [Controller and response branches](https://github.com/xormania/uxorscient/blob/master/dev/app/src/Controller/CustomerController.php)
-- [Application table subclass](https://github.com/xormania/uxorscient/blob/master/dev/app/src/Table/CustomersTable.php)
-- [Symfony form and constraints](https://github.com/xormania/uxorscient/blob/master/dev/app/src/Form/CustomerType.php)
-- [Templates and stream response](https://github.com/xormania/uxorscient/tree/master/dev/app/templates/customer)
-- [Focus restoration controller](https://github.com/xormania/uxorscient/blob/master/dev/app/assets/controllers/customer_saved_controller.js)
-- [Browser interaction checks](https://github.com/xormania/uxorscient/blob/master/tests/e2e/customer-workflow.spec.mjs)
+- [Controller and response branches](https://github.com/xormania/uxorscient/blob/ebf5d4926927be88c735b888b096d24210a593d3/dev/app/src/Controller/CustomerController.php)
+- [Application table subclass](https://github.com/xormania/uxorscient/blob/ebf5d4926927be88c735b888b096d24210a593d3/dev/app/src/Table/CustomersTable.php)
+- [Symfony form and constraints](https://github.com/xormania/uxorscient/blob/ebf5d4926927be88c735b888b096d24210a593d3/dev/app/src/Form/CustomerType.php)
+- [Templates and stream response](https://github.com/xormania/uxorscient/tree/ebf5d4926927be88c735b888b096d24210a593d3/dev/app/templates/customer)
+- [Focus restoration controller](https://github.com/xormania/uxorscient/blob/ebf5d4926927be88c735b888b096d24210a593d3/dev/app/assets/controllers/customer_saved_controller.js)
+- [Browser interaction checks](https://github.com/xormania/uxorscient/blob/ebf5d4926927be88c735b888b096d24210a593d3/tests/e2e/customer-workflow.spec.mjs)
 
 The fixture's session store is a test/development choice. Its successful journey provides evidence about this selected composition on its tested environment; it does not establish all component or platform combinations.

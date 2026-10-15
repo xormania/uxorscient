@@ -32,7 +32,8 @@ Packagist availability.
 | Part | Executed combination |
 | --- | --- |
 | PHP and framework | PHP 8.4; Symfony 7.4 |
-| UX and agent tooling | Symfony UX 3.5; Mate 0.14; native Makers |
+| Browser workflow UX and agent tooling | Symfony UX 3.5.1; Toolkit 3.5.1; Mate 0.14.0; native Makers |
+| Independent archive lifecycle | UX 3.6.0 resolved during clean archive install/update with Toolkit 3.5.1; separate from browser coverage |
 | Composer lifecycle | Composer 2; actual archive install/update and explicit Mate discovery |
 | Assets | AssetMapper; Tailwind 4.3.3 and Flowbite stylesheet 4.0.2; custom profiles return explicit unknowns |
 | Browser | Playwright 1.58.2; Chromium headless shell 145.0.7632.6; four selected consumer cases |
