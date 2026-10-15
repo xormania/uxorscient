@@ -21,12 +21,21 @@
     "autoload-dev": {
         "psr-4": {"Xormania\\Uxorscient\\Tests\\": "tests/"}
     },
+    "bin": ["bin/uxorscient"],
     "archive": {"exclude": ["/.git"]},
     "config": {
         "sort-packages": true,
         "allow-plugins": {"symfony/ai-mate-composer-plugin": true}
     },
     "extra": {
-        "ai-mate": {"extension": false}
+        "ai-mate": {
+            "scan-dirs": ["src/Mate"],
+            "includes": ["config/services.php"],
+            "instructions": "INSTRUCTIONS.md",
+            "skills": ["skills"]
+        }
+    },
+    "scripts": {
+        "test": "@php vendor/bin/phpunit"
     }
 }
