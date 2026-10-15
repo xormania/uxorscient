@@ -32,3 +32,21 @@ action; a repository alone does not establish Packagist availability.
 Reference facts, observed project facts, executed evidence and suggested actions
 remain distinct. An installed filename alone does not establish a component's
 version. Updating companion knowledge does not overwrite application-owned source.
+
+## Application workflow
+
+The [independent customer workflow](consumer-workflow.md) installs selected UXor
+sources through Toolkit, binds its PHP with the application's normal autoloading,
+and demonstrates search, sorting, pagination, modal editing, server validation,
+save streams, feedback and browser history. A filtered-out record returns focus
+to search; an ordinary browser form receives a successful HTTP 303 redirect.
+
+The browser checks use Playwright 1.58.2 with Chromium 145.0.7632.6. The consuming
+fixture uses PHP 8.4, Symfony FrameworkBundle 7.4, UX packages 3.5.1, Tailwind 4.3.3
+and Flowbite stylesheet 4.0.2. The runtime smoke check renders the installed PHP
+and Twig after development dependencies, including Toolkit and UXorscient, are
+removed. These are selected integration cases; UXor retains its component suite.
+
+The same composition is available to installed agents through the packaged
+`uxorscient://workflow/customer-management` guide. Workflow source, browser tools
+and application fixtures remain development material outside the Composer archive.
