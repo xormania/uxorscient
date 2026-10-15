@@ -1,0 +1,27 @@
+name: Feature request
+description: Describe a useful improvement to agent guidance or development tooling.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the task and what currently gets in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What should a user or agent be able to accomplish, and how would you verify it?
+    validations:
+      required: true
+  - type: textarea
+    id: existing
+    attributes:
+      label: Existing capabilities and alternatives
+      description: Relevant UXor, Symfony, Mate or other existing tools; workarounds you tried; links to public evidence.
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints and examples
+      description: Optional compatibility, customization, workflow or environment requirements. Keep private project details out.

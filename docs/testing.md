@@ -1,5 +1,11 @@
 # Validation
 
+The package/application, prepared-environment, consumer-workflow and CodeQL jobs
+run on pull requests and pushes to `dev` or `master`. CodeQL also runs for
+documentation changes so a ruleset requiring analysis receives a result for the
+PR. Branch creation and a passing run do not configure required GitHub checks;
+the maintainer manages those settings as described in [GitHub workflow](github.md).
+
 CI runs the same native application commands used for development. PHP 8.4,
 Composer 2, Node and Python 3 are required. Select another executable with
 `PHP_BIN` or `COMPOSER_BIN` when needed; a Composer `.phar` uses `PHP_BIN`.
