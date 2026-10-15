@@ -6,14 +6,14 @@ namespace Xormania\Uxorscient;
 
 use Symfony\Component\Process\Process;
 
-/** Discovers native metadata. Execution of Makers/tools remains with their native interface. */
+/** Native metadata discovery boots project PHP and requires caller acknowledgement. */
 final class NativeTools
 {
     public function __construct(private readonly ProjectInspector $inspector)
     {
     }
 
-    public function discover(string $directory, string $kind = 'maker', string $name = '', int $limit = 20): array
+    public function discover(string $directory, string $kind = 'maker', string $name = '', int $limit = 20, bool $trustProjectCode = false): array
     {
         $root = $this->inspector->root($directory);
         if (!in_array($kind, ['maker', 'mate'], true)) {
@@ -24,6 +24,11 @@ final class NativeTools
         }
         if ('maker' === $kind && '' !== $name && !str_starts_with($name, 'make:')) {
             throw new \InvalidArgumentException('Maker detail requires an exact make: command name.');
+        }
+        if (!$trustProjectCode) {
+            return ['status' => 'incomplete', 'summary' => 'Native metadata discovery is blocked until the caller acknowledges execution of this project’s PHP code.',
+                'root' => $root, 'kind' => $kind, 'project_code_executed' => false,
+                'suggested_action' => 'For a checkout already trusted and authorized for execution, set --trust-project-code on the CLI or trustProjectCode=true in Mate. Otherwise establish trust before running project code.'];
         }
         $script = 'mate' === $kind ? 'vendor/bin/mate' : 'bin/console';
         if (!is_file($root.'/'.$script)) {
@@ -50,7 +55,8 @@ final class NativeTools
             $stdout .= substr($data, 0, max(0, $remaining));
         });
         // Native command output may contain project data; avoid relaying raw failures or environment secrets.
-        $evidence = ['argv' => $argv, 'exit_code' => $process->getExitCode(), 'output_truncated' => $overflow];
+        $evidence = ['argv' => $argv, 'exit_code' => $process->getExitCode(), 'output_truncated' => $overflow,
+            'trust_project_code' => true, 'project_code_executed' => true];
         if (!$process->isSuccessful() || $overflow) {
             return ['status' => 'incomplete', 'summary' => 'Native metadata discovery failed or exceeded its output bound.',
                 'kind' => $kind, 'evidence' => $evidence,

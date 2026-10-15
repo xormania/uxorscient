@@ -42,7 +42,7 @@ final class Operations
                 'inspect' => $this->inspector->inspect($root),
                 'doctor' => $this->diagnose($root, (string) ($arguments['component'] ?? ''), (string) ($arguments['asset_profile'] ?? 'auto')),
                 'tools' => $this->nativeTools->discover($root, (string) ($arguments['kind'] ?? 'maker'),
-                    (string) ($arguments['name'] ?? ''), (int) ($arguments['limit'] ?? 20)),
+                    (string) ($arguments['name'] ?? ''), (int) ($arguments['limit'] ?? 20), true === ($arguments['trust_project_code'] ?? false)),
                 default => throw new \InvalidArgumentException('Unknown operation. Use catalog, component, reference, workflow, inspect, doctor, or tools.'),
             };
             $result['status'] = $result['data']['status'] ?? 'completed';

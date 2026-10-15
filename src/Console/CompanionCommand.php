@@ -27,7 +27,7 @@ final class CompanionCommand extends Command
             'workflow' => 'Read a practical companion-authored application workflow.',
             'inspect' => 'Inspect the selected application metadata.',
             'doctor' => 'Check setup, selected component wiring and runtime unknowns.',
-            'tools' => 'Discover installed native Maker or Mate metadata.',
+            'tools' => 'Discover native Maker/Mate metadata by executing trusted project PHP (explicit opt-in).',
         })->addOption('format', null, InputOption::VALUE_REQUIRED, 'text or json', 'text');
         if (in_array($this->operation, ['inspect', 'doctor', 'tools'], true)) {
             $this->addOption('project-root', null, InputOption::VALUE_REQUIRED, 'Explicit application directory; defaults to current directory', getcwd());
@@ -54,7 +54,8 @@ final class CompanionCommand extends Command
         if ('tools' === $this->operation) {
             $this->addOption('kind', null, InputOption::VALUE_REQUIRED, 'maker or mate', 'maker')
                 ->addOption('name', null, InputOption::VALUE_REQUIRED, 'Exact name for native parameter definitions', '')
-                ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'List limit (1–50)', 20);
+                ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'List limit (1–50)', 20)
+                ->addOption('trust-project-code', null, InputOption::VALUE_NONE, 'Acknowledge that metadata discovery boots this trusted checkout and executes its PHP/autoload code');
         }
         if ('doctor' === $this->operation) {
             $this->addOption('component', null, InputOption::VALUE_REQUIRED, 'Installed component to check against its reference requirements', '')
@@ -65,7 +66,7 @@ final class CompanionCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $arguments = [];
-        foreach (['project-root', 'query', 'category', 'limit', 'offset', 'kind', 'name', 'component', 'asset-profile'] as $name) {
+        foreach (['project-root', 'query', 'category', 'limit', 'offset', 'kind', 'name', 'component', 'asset-profile', 'trust-project-code'] as $name) {
             if ($this->getDefinition()->hasOption($name)) {
                 $arguments[str_replace('-', '_', $name)] = $input->getOption($name);
             }
