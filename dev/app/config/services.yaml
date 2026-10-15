@@ -5,4 +5,7 @@ services:
 
     App\:
         resource: '../src/'
-        exclude: '../src/Kernel.php'
+        exclude: '../src/{Kernel.php,Table/,Controller/CustomerController.php}'
+
+imports:
+    - { resource: workflow.php }

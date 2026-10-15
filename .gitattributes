@@ -16,3 +16,6 @@
 /test-results export-ignore
 /playwright-report export-ignore
 /xorder-support.lock.json export-ignore
+/package.json export-ignore
+/package-lock.json export-ignore
+/playwright.config.mjs export-ignore

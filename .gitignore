@@ -12,3 +12,14 @@
 /test-results/
 /playwright-report/
 *.log
+/dev/app/src/UXor/
+/dev/app/templates/components/
+/dev/app/templates/form/
+/dev/app/assets/styles/uxor.css
+/dev/app/assets/lib/
+/dev/app/assets/icons/
+/dev/app/assets/controllers/data_table_controller.js
+/dev/app/assets/controllers/flowbite_modal_controller.js
+/dev/app/assets/controllers/toast_controller.js
+/dev/app/assets/controllers/toast_region_controller.js
+/dev/app/config/reference.php

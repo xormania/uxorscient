@@ -1,0 +1,50 @@
+name: Consumer workflow
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: consumer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  customer-workflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.4'
+          extensions: intl, mbstring, pdo_sqlite, zip
+          coverage: none
+          tools: composer:v2
+      - name: Prepare the consuming application
+        run: python3 dev/run.py --native prepare
+      - name: Install pinned UXor sources through Toolkit
+        run: python3 dev/install-uxor.py
+      - name: Install browser checks
+        run: |
+          node --version
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Verify the application journey
+        run: npm run test:workflow
+      - name: Verify selected components without development dependencies
+        run: |
+          composer install --working-dir=dev/app --no-dev --prefer-dist --no-interaction --no-progress
+          php dev/app/bin/console cache:clear --env=prod --no-debug --no-interaction
+          php dev/check-workflow-runtime.php
+      - name: Retain browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: consumer-workflow-failure
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

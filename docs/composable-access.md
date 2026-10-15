@@ -42,6 +42,21 @@ agent discovers the guidance, chooses the right operations or delivers a feature
 Those outcomes require a separately recorded agent evaluation. Browser behavior
 also has separate consumer checks.
 
+## Observed hosted result
+
+On 2026-10-15, the composed probe passed in
+[CI run 38711364548](https://github.com/xormania/uxorscient/actions/runs/38711364548)
+at repository revision `c776bbd`. The receipt recorded eight CLI/Mate/PHP commands
+with exit status zero, all bound to `/workspace/dev/app`, and nine completed checks
+including partial-failure recovery and read-only reconnect. The observed command
+runtime was PHP 8.5.11 at `/usr/local/bin/php` in the prepared provider.
+
+The source revision and provider image are pinned by `dev/run.py`,
+`dev/serena-support.lock.json` and `xorder-support.lock.json`. Receipt artifact
+`11960602046` expires on 2026-10-22; the run link and this recorded result remain
+useful after artifact expiry. This establishes the selected composed tooling path;
+the native PHP 8.4 browser workflow and bounded agent task have separate evidence.
+
 ## Runtime and dependency implications
 
 The prepared Serena container mounts the selected checkout and its application
