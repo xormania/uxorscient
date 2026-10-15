@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""Record actual Serena v2 symbol, session and partial-failure evidence."""
+from __future__ import annotations
+
+import argparse
+import datetime
+import fcntl
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import secrets
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def cell(client, code: str, *, expected_error: str | None = None) -> str:
+    result = client.repl(code)
+    text = client.content(result["result"])
+    if expected_error is not None:
+        if result["ok"] or expected_error not in text:
+            raise RuntimeError("The deliberate REPL failure was not reported as expected: " + text[:1000])
+    elif not result["ok"]:
+        raise RuntimeError("Serena operation failed: " + text[:1000])
+    return text
+
+
+def exercise(client_type, launch: list[str], scratch: Path, protected: Path, timeout: float) -> dict:
+    """Only scratch is mutable; a reconnect must keep source and discard variables."""
+    original_hash = hashlib.sha256(protected.read_bytes()).hexdigest()
+    relative = scratch.relative_to(ROOT).as_posix()
+    client = None
+    checks = []
+    try:
+        client = client_type([*launch, "--write"], timeout=timeout)
+        first_session = client.session
+        client.timeout = min(timeout, 180)
+        cell(client, "s.info('lsp.find_symbol', 'edit.replace_content')")
+        found = cell(client, "s.lsp.find_symbol('DevelopmentController', relative_path='dev/app/src/Controller/DevelopmentController.php', include_body=False)")
+        if "DevelopmentController" not in found:
+            raise RuntimeError("The fixture controller was not returned by PHP symbol lookup")
+        checks.append("php-symbol-lookup")
+
+        if cell(client, "uxorscient_probe = 41\nuxorscient_probe").strip() != "41":
+            raise RuntimeError("Initial REPL variable result was not 41")
+        if cell(client, "uxorscient_probe + 1").strip() != "42":
+            raise RuntimeError("REPL variables did not survive a second cell")
+        checks.append("persistent-repl-variable")
+
+        cell(client, f"s.edit.replace_content({relative!r}, 'before-probe', 'after-probe', 'literal')\nraise RuntimeError('uxorscient-deliberate-failure')",
+             expected_error="uxorscient-deliberate-failure")
+        if "after-probe" not in scratch.read_text():
+            raise RuntimeError("The source edit made before the deliberate error did not remain inspectable")
+        checks.append("source-edit-survives-failed-cell")
+        client.close()
+        client = None
+
+        # A new read-only provider session deliberately receives no old REPL variables.
+        client = client_type(launch, timeout=timeout)
+        client.timeout = min(timeout, 180)
+        if client.session == first_session:
+            raise RuntimeError("The reconnect unexpectedly reused the previous session identity")
+        if cell(client, "'uxorscient_probe' in globals()").strip() != "False":
+            raise RuntimeError("The reconnect retained the old REPL variable")
+        if "after-probe" not in scratch.read_text():
+            raise RuntimeError("The reconnect lost the earlier source edit")
+        checks.append("reconnect-resets-variables-preserves-source")
+        if hashlib.sha256(protected.read_bytes()).hexdigest() != original_hash:
+            raise RuntimeError("The protected fixture controller changed during Serena verification")
+        checks.append("fixture-controller-unchanged")
+        return {"status": "passed", "checks": checks, "controller_sha256": original_hash}
+    finally:
+        if client is not None:
+            client.close()
+
+
+def main(arguments=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--startup-timeout", type=float, default=600)
+    args = parser.parse_args(arguments)
+    if args.startup_timeout <= 0:
+        parser.error("--startup-timeout must be positive")
+    state = ROOT / "dev/.state"
+    state.mkdir(parents=True, exist_ok=True)
+    lock_descriptor = os.open(state / "serena-check.lock", os.O_RDWR | os.O_CREAT, 0o600)
+    with os.fdopen(lock_descriptor, "w") as lease:
+        try:
+            fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise RuntimeError("Another Serena verification owns this worktree; wait for it or use a separate worktree")
+        # A failed new attempt must not leave an earlier passing receipt current.
+        (state / "serena-evidence.json").unlink(missing_ok=True)
+        runner = load_module("uxorscient_dev_runner", ROOT / "dev/run.py")
+        provider, _, _ = runner.prepare_image(runner.environment(), serena=True)
+        # The public xorder client owns MCP initialization, serialization and shutdown.
+        sys.path.insert(0, str(provider / "examples/serena"))
+        client = load_module("uxorscient_external_serena_client", provider / "examples/serena/client.py")
+        protected = ROOT / "dev/app/src/Controller/DevelopmentController.php"
+        token = secrets.token_hex(6)
+        scratch = ROOT / f"dev/app/src/SerenaRecoveryProbe{token}.php"
+        descriptor = os.open(scratch, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, "w") as source:
+            source.write("<?php\nnamespace App;\nfinal class SerenaRecoveryProbe" + token + " { public const STATE = 'before-probe'; }\n")
+        try:
+            evidence = exercise(client.MCP, [sys.executable, str(ROOT / "dev/run.py"), "serena"], scratch, protected, args.startup_timeout)
+            evidence.update({
+                "provider_source": runner.XORDER_REVISION,
+                "image": runner.locked_image(ROOT / "dev/serena-support.lock.json"),
+                "application": "dev/app",
+                "observed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            })
+            (state / "serena-evidence.json").write_text(json.dumps(evidence, indent=2) + "\n")
+            print(json.dumps(evidence, indent=2))
+        finally:
+            scratch.unlink(missing_ok=True)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except (OSError, ValueError, RuntimeError) as error:
+        print("Serena verification failed: " + str(error), file=sys.stderr)
+        raise SystemExit(1)

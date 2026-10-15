@@ -1,0 +1,14 @@
+/vendor/
+/var/
+/.phpunit.cache/
+/dev/app/vendor/
+/dev/app/var/
+/dev/app/.env.local
+/dev/app/public/assets/
+/dev/app/assets/vendor/
+/dev/.tools/
+/dev/.state/
+/node_modules/
+/test-results/
+/playwright-report/
+*.log

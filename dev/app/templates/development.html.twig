@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <main>
+        <h1>UXorscient development consumer</h1>
+        <p>This separate Symfony application consumes the companion through Composer.</p>
+        <section data-controller="counter" aria-labelledby="stimulus-heading">
+            <h2 id="stimulus-heading">Stimulus readiness</h2>
+            <button type="button" data-action="counter#increment">Increment</button>
+            <output data-counter-target="output" aria-live="polite">0</output>
+        </section>
+        <section aria-labelledby="turbo-heading">
+            <h2 id="turbo-heading">Turbo readiness</h2>
+            <turbo-frame id="development-panel">
+                <a href="{{ path('development_panel') }}">Load the panel</a>
+            </turbo-frame>
+        </section>
+    </main>
+{% endblock %}

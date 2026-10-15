@@ -1,0 +1,32 @@
+{
+    "name": "xormania/uxorscient",
+    "description": "Agent guidance and development tools for building with UXor.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [{"name": "xormania"}],
+    "require": {
+        "php": ">=8.4",
+        "symfony/ai-mate": "^0.14",
+        "symfony/ai-symfony-mate-extension": "^0.14",
+        "symfony/console": "^7.4 || ^8.0",
+        "symfony/filesystem": "^7.4 || ^8.0",
+        "symfony/process": "^7.4 || ^8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.5"
+    },
+    "autoload": {
+        "psr-4": {"Xormania\\Uxorscient\\": "src/"}
+    },
+    "autoload-dev": {
+        "psr-4": {"Xormania\\Uxorscient\\Tests\\": "tests/"}
+    },
+    "archive": {"exclude": ["/.git"]},
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {"symfony/ai-mate-composer-plugin": true}
+    },
+    "extra": {
+        "ai-mate": {"extension": false}
+    }
+}
