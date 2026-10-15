@@ -26,7 +26,7 @@ final class CompanionCommand extends Command
             'reference' => 'Read a packaged UXor document.',
             'workflow' => 'Read a practical companion-authored application workflow.',
             'inspect' => 'Inspect the selected application metadata.',
-            'doctor' => 'Check setup and identify integration unknowns.',
+            'doctor' => 'Check setup, selected component wiring and runtime unknowns.',
             'tools' => 'Discover installed native Maker or Mate metadata.',
         })->addOption('format', null, InputOption::VALUE_REQUIRED, 'text or json', 'text');
         if (in_array($this->operation, ['inspect', 'doctor', 'tools'], true)) {
@@ -56,12 +56,16 @@ final class CompanionCommand extends Command
                 ->addOption('name', null, InputOption::VALUE_REQUIRED, 'Exact name for native parameter definitions', '')
                 ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'List limit (1–50)', 20);
         }
+        if ('doctor' === $this->operation) {
+            $this->addOption('component', null, InputOption::VALUE_REQUIRED, 'Installed component to check against its reference requirements', '')
+                ->addOption('asset-profile', null, InputOption::VALUE_REQUIRED, 'auto, assetmapper, or custom', 'auto');
+        }
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $arguments = [];
-        foreach (['project-root', 'query', 'category', 'limit', 'offset', 'kind', 'name'] as $name) {
+        foreach (['project-root', 'query', 'category', 'limit', 'offset', 'kind', 'name', 'component', 'asset-profile'] as $name) {
             if ($this->getDefinition()->hasOption($name)) {
                 $arguments[str_replace('-', '_', $name)] = $input->getOption($name);
             }

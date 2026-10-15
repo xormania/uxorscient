@@ -28,7 +28,7 @@ Installed PHP belongs in the application's normal `src/UXor/` tree under `App\UX
 
 Create one application class extending `App\UXor\DataTable\AbstractDataTable`. Implement `columns()`, protected `countRows(TableQuery): int` and protected `loadRows(TableQuery): array`. Both data operations apply the same filters. Load only the requested page using `$query->offset()` and `$query->pageSize`.
 
-Declare allowed sort fields in the columns and map normalized `$query->sortField` and `$query->direction` to the repository query. SQL identifiers are application-controlled; a query parameter is never an SQL column expression. The fixture has one sortable name column and a small session-backed store to keep tests isolated. A real application supplies its own persistence and querying.
+Declare allowed sort fields in the columns and map normalized `$query->sortField` and `$query->direction` to the repository query. SQL identifiers are application-controlled; a query parameter is never an SQL column expression. The fixture sorts Name and Email through normalized allowed fields, with a stable record-ID tie-breaker before pagination. Its small session-backed store keeps tests isolated. A real application supplies its own persistence and querying.
 
 The list controller passes `$table->handleRequest($request)` to its template. Render `<twig:DataTable :table="table" id="customers" />` and use `<twig:block name="cell_edit">` for the edit action. Give row actions stable IDs such as `edit-customer-42`.
 

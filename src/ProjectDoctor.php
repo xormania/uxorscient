@@ -6,7 +6,7 @@ namespace Xormania\Uxorscient;
 
 final class ProjectDoctor
 {
-    public function findings(array $project): array
+    public function findings(array $project, ?array $component = null, string $assetProfile = 'auto'): array
     {
         $findings = [];
         foreach (['symfony/twig-bundle', 'symfony/ux-twig-component', 'symfony/ux-turbo',
@@ -27,9 +27,12 @@ final class ProjectDoctor
                 'status' => $present ? 'pass' : 'unknown', 'evidence' => ['file' => $path, 'exists' => $present],
                 'suggested_action' => $present ? null : 'Read uxorscient://reference/INSTALL.md and check the application-specific equivalent.'];
         }
+        if (null !== $component) {
+            return [...$findings, ...(new ComponentWiring())->findings($project, $component, $assetProfile)];
+        }
         $findings[] = ['check' => 'component_wiring', 'subject' => 'installed UXor components', 'status' => 'unknown',
             'evidence' => ['files_sampled' => count($project['component_evidence']['files']), 'application_executed' => false],
-            'suggested_action' => 'Read the selected component README, complete its Composer/importmap/CSS/configuration requirements, then verify the actual application workflow.'];
+            'suggested_action' => 'Select a component with --component for documented static wiring checks, read its README, then verify the actual application workflow.'];
         return $findings;
     }
 }

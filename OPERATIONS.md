@@ -9,6 +9,7 @@ vendor/bin/uxorscient reference modal/README.md --format=json
 vendor/bin/uxorscient workflow customer-management --format=json
 vendor/bin/uxorscient inspect --project-root=/app --format=json
 vendor/bin/uxorscient doctor --project-root=/app --format=json
+vendor/bin/uxorscient doctor --project-root=/app --component=editor --format=json
 vendor/bin/uxorscient tools --project-root=/app --kind=maker --format=json
 vendor/bin/uxorscient tools --project-root=/app --kind=maker --name=make:controller --format=json
 vendor/bin/uxorscient tools --project-root=/app --kind=mate --format=json
@@ -36,6 +37,10 @@ vendor/bin/mate resources:read uxorscient://workflow/customer-management --forma
 `inspect` reads only selected Composer metadata and checks selected configuration paths. It reports root `require` versus `require-dev`, versions from `vendor/composer/installed.json`, and versions separately from `composer.lock`. Missing installed metadata stays unknown. A sample of candidate component files establishes presence only: origin, version, customization and runtime wiring are unknown.
 
 `doctor` checks runtime package placement and expected first-setup paths for the current UXor/AssetMapper profile. An alternative pipeline may have different files; absent conventional paths are unknown findings with follow-up guidance. A declared runtime package under `require-dev` fails its placement check. Existing paths pass only their presence check. Component-specific importmap entries, CSS imports, controller registration, application boot, CSP and the requested browser journey still need verification using the component README and application tools. The operation never calls a project healthy solely because files exist.
+
+Use `doctor --component=<catalog-name>` for selected-component static wiring checks. The pinned manifest supplies importmap package keys. The editor and dropzone READMEs supply required stylesheet imports; dropzone also requires its native controller enabled and upstream stylesheet autoimport disabled. For modal, data-table, editor and dropzone, the check looks for the controller copied into the documented `assets/controllers/` layout. Findings link the pinned reference and identify their static scope. Importmap PHP is tokenized as text and never executed; comments do not count as keys. Literal-key presence does not establish the resolved asset or runtime registration.
+
+`--asset-profile=auto` applies the conventional layout when the project declares or installs AssetMapper and has an importmap file. `--asset-profile=assetmapper` selects that layout explicitly. Use `--asset-profile=custom` for relocated/replaced application-owned assets or another pipeline; those checks remain unknown pending project-specific verification. The Mate doctor's corresponding named inputs are `component` and `assetProfile`. Static successes still leave runtime verification unknown: inspect controller connection, computed styles, PHP wiring and the requested interaction in the running application.
 
 ## Native capability metadata
 

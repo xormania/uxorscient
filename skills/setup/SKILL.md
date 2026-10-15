@@ -20,6 +20,10 @@ The same files are available under `vendor/xormania/uxorscient/resources/uxor/do
 
 For bounded sections of long documents, inspect and use the installed `uxorscient_reference` tool rather than loading every reference page.
 
+After a Composer update of the companion, run `vendor/bin/mate discover` in the
+application to refresh its instructions and skills. Existing project instructions
+outside Mate's managed block and application-owned component files remain intact.
+
 ## Procedure
 
 1. Identify the application root, its project instructions and its PHP/Composer invocation. Use its existing Docker or native runtime consistently. Inspect `composer.json`, `composer.lock`, bundle configuration, importmap/assets and existing component files before changing setup.

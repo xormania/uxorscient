@@ -136,6 +136,11 @@ verification runs serialized. The resulting receipt is
 `dev/.state/serena-evidence.json`; source definitions and mocked harness tests do
 not establish these provider behaviors. Docker CI runs the real check.
 
+Once the companion is installed and discovered, add `--companion` to include
+CLI/Mate discovery, bound application inspection and targeted recovery of a
+customized probe in that same Serena session. The [access decision and evidence
+limits](composable-access.md) describe what this scripted check establishes.
+
 Call `initial_instructions` first. Use the returned session ID for every
 `serena_repl` call, and discover the current operation definitions before calling
 them. For example, after initial instructions:

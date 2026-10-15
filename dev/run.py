@@ -75,8 +75,8 @@ def xorder_source() -> Path:
     revision = run(["git", "-C", str(checkout), "rev-parse", "HEAD"], capture=True).stdout.strip()
     if revision != XORDER_REVISION:
         raise ValueError(f"XORDER_DIR must select reviewed revision {XORDER_REVISION}; found {revision}. Use another checkout or update the project pin deliberately")
-    if run(["git", "-C", str(checkout), "status", "--porcelain", "--untracked-files=no"], capture=True).stdout.strip():
-        raise ValueError("The pinned xorder provider has tracked modifications; use a clean provider checkout")
+    if run(["git", "-C", str(checkout), "status", "--porcelain", "--untracked-files=all"], capture=True).stdout.strip():
+        raise ValueError("The pinned xorder provider has tracked or untracked modifications; use a clean provider checkout")
     return checkout
 
 

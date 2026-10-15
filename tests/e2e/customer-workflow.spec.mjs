@@ -116,6 +116,70 @@ test('ordinary browser submission has server validation and a redirect after sav
     await context.close();
 });
 
+test('email sorting retains the current search, pagination and Turbo history', async ({ page }) => {
+    await page.goto('/customers?source=email-sort');
+    // Break the seed data's matching name/email order through the real editor.
+    await page.getByRole('link', { name: 'Edit Ada Lovelace', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Edit customer', exact: true });
+    await dialog.getByRole('textbox', { name: 'Email', exact: true }).fill('z.ada@customer.test');
+    await dialog.getByRole('button', { name: 'Save customer' }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('#customers-row-1')).toContainText('z.ada@customer.test');
+
+    // Three records match: pagination is exercised while Margaret stays excluded.
+    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill('er');
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    await expect(page).toHaveURL(/q=er/);
+    await page.getByRole('link', { name: 'Page 2', exact: true }).click();
+    await expect(page).toHaveURL(/page=2/);
+    await expect(page.locator('#customers tbody tr')).toHaveAttribute('id', 'customers-row-3');
+    await page.locator('#customers').evaluate((frame) => frame.loaded);
+    await expect(page.locator('html')).not.toHaveAttribute('aria-busy', 'true');
+    await page.evaluate(() => { window.__emailSortDocument = 'original'; });
+
+    const assertEmailState = async (direction, pageNumber, ids) => {
+        await expect(page).toHaveURL((url) => url.pathname === '/customers'
+            && url.searchParams.get('source') === 'email-sort'
+            && url.searchParams.get('q') === 'er'
+            && url.searchParams.get('sort') === 'email'
+            && url.searchParams.get('dir') === direction
+            && Number(url.searchParams.get('page') ?? 1) === pageNumber);
+        await expect(page.getByRole('searchbox', { name: 'Search', exact: true })).toHaveValue('er');
+        await expect(page.getByRole('columnheader', { name: 'Email', exact: true })).toHaveAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
+        await expect.poll(() => page.locator('#customers tbody tr').evaluateAll((rows) => rows.map((row) => row.id))).toEqual(ids);
+        await expect(page.locator('#customers-row-4')).toHaveCount(0);
+        // DOM/URL can update before Turbo finishes promoting a frame visit to history.
+        await page.locator('#customers').evaluate((frame) => frame.loaded);
+        await expect(page.locator('html')).not.toHaveAttribute('aria-busy', 'true');
+        expect(await page.evaluate(() => window.__emailSortDocument)).toBe('original');
+    };
+
+    await page.getByRole('link', { name: 'Email', exact: true }).click();
+    await assertEmailState('asc', 1, ['customers-row-2', 'customers-row-3']);
+    await page.getByRole('link', { name: 'Email', exact: true }).click();
+    await assertEmailState('desc', 1, ['customers-row-1', 'customers-row-3']);
+    await page.getByRole('link', { name: 'Page 2', exact: true }).click();
+    await assertEmailState('desc', 2, ['customers-row-2']);
+    await page.goBack();
+    await assertEmailState('desc', 1, ['customers-row-1', 'customers-row-3']);
+    await page.goBack();
+    await assertEmailState('asc', 1, ['customers-row-2', 'customers-row-3']);
+    await page.goForward();
+    await assertEmailState('desc', 1, ['customers-row-1', 'customers-row-3']);
+    await page.goForward();
+    await assertEmailState('desc', 2, ['customers-row-2']);
+
+    // A save on an email-sorted page keeps that context when the row moves away.
+    await page.getByRole('link', { name: 'Edit Grace Hopper', exact: true }).click();
+    await dialog.getByRole('textbox', { name: 'Email', exact: true }).fill('zz.grace@customer.test');
+    await dialog.getByRole('button', { name: 'Save customer' }).click();
+    await expect(dialog).toHaveCount(0);
+    await assertEmailState('desc', 2, ['customers-row-3']);
+    await expect(page.getByRole('searchbox', { name: 'Search', exact: true })).toBeFocused();
+    await page.reload();
+    await expect(page.locator('#customers tbody tr')).toHaveAttribute('id', 'customers-row-3');
+});
+
 test('a saved row leaving the active search restores focus to search', async ({ page }) => {
     await page.goto('/customers?q=Ada');
     await page.getByRole('link', { name: 'Edit Ada Lovelace', exact: true }).click();

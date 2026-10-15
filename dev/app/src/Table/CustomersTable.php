@@ -16,7 +16,7 @@ final class CustomersTable extends AbstractDataTable
 
     public function columns(): array
     {
-        return [Column::make('name', 'Name')->sortable('name'), Column::make('email', 'Email'), Column::make('edit', 'Edit')];
+        return [Column::make('name', 'Name')->sortable('name'), Column::make('email', 'Email')->sortable('email'), Column::make('edit', 'Edit')];
     }
 
     public function pageSizes(): array
@@ -37,7 +37,8 @@ final class CustomersTable extends AbstractDataTable
     protected function loadRows(TableQuery $query): array
     {
         $rows = $this->matching($query);
-        usort($rows, static fn (array $a, array $b): int => ($a['name'] <=> $b['name']) * ('desc' === $query->direction ? -1 : 1));
+        $sortField = $query->sortField ?? 'name';
+        usort($rows, static fn (array $a, array $b): int => ([$a[$sortField], $a['id']] <=> [$b[$sortField], $b['id']]) * ('desc' === $query->direction ? -1 : 1));
 
         return array_slice($rows, $query->offset(), $query->pageSize);
     }

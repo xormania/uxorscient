@@ -4,6 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import copy
+import hashlib
+import io
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -117,6 +120,79 @@ def consumer_instruction_parts(content: str) -> tuple[str, str]:
     return before, after
 
 
+def versioned_archive(source: Path, destination: Path, version: str) -> str:
+    """Make two temporary package versions without changing the maintained checkout."""
+    marker = f"UXorscient archive update acceptance: {version}"
+    with tarfile.open(source, mode="r:") as original, tarfile.open(destination, mode="w:") as output:
+        for member in original.getmembers():
+            exported = original.extractfile(member) if member.isfile() else None
+            if exported is None:
+                output.addfile(member)
+                continue
+            content = exported.read()
+            if member.name == "composer.json":
+                manifest = json.loads(content)
+                manifest["version"] = version
+                content = (json.dumps(manifest, indent=4) + "\n").encode()
+            elif member.name in {"INSTRUCTIONS.md", "skills/build/SKILL.md"}:
+                content += f"\n\n<!-- {marker} -->\n".encode()
+            entry = copy.copy(member)
+            entry.size = len(content)
+            output.addfile(entry, io.BytesIO(content))
+    return marker
+
+
+def archive_repository(archive: Path) -> dict:
+    with tarfile.open(archive, mode="r:") as package:
+        exported = package.extractfile("composer.json")
+        if exported is None:
+            raise RuntimeError("Archive Composer metadata cannot be read")
+        dependency = json.load(exported)
+    dependency["dist"] = {"type": "tar", "url": archive.as_uri(),
+                          "shasum": hashlib.sha1(archive.read_bytes(), usedforsecurity=False).hexdigest()}
+    return {"type": "package", "package": dependency}
+
+
+def check_update(application: Path, manifest: dict, archive: Path, old_marker: str,
+                 new_marker: str, build_skill: Path) -> None:
+    instructions = application / "AGENTS.md"
+    custom_instructions = consumer_instruction_parts(instructions.read_text())
+    component = application / "templates/components/ConsumerOwned.html.twig"
+    component.parent.mkdir(parents=True, exist_ok=True)
+    component.write_text('{# Application-owned custom component. #}\n<span class="consumer-custom">Keep this behavior.</span>\n')
+    component_content = component.read_bytes()
+    manifest["repositories"] = [archive_repository(archive)]
+    (application / "composer.json").write_text(json.dumps(manifest, indent=4) + "\n")
+    execute([*composer_command(), "update", "xormania/uxorscient", "--prefer-dist",
+             "--no-interaction", "--no-progress"], application)
+    installed = application / "vendor/xormania/uxorscient"
+    metadata = json.loads((application / "vendor/composer/installed.json").read_text())
+    companion = next(package for package in metadata["packages"] if package["name"] == "xormania/uxorscient")
+    if installed.is_symlink() or companion["version"] != "0.0.1" or companion.get("installation-source") != "dist":
+        raise RuntimeError("Composer update did not install the newer archive as a regular distribution")
+    if companion.get("dist", {}).get("url") != archive.as_uri():
+        raise RuntimeError("Installed package metadata does not identify the newer archive")
+    if json.loads((installed / "composer.json").read_text()).get("version") != "0.0.1":
+        raise RuntimeError("Updated package files do not match Composer's installed version")
+    # The supported lifecycle refreshes Mate explicitly after Composer updates.
+    # Mate 0.14's plugin can resolve Composer's own root when Composer runs as a PHAR.
+    php = os.environ.get("PHP_BIN", "php")
+    execute([php, "vendor/bin/mate", "discover", "--no-interaction"], application)
+    for materialized in (application / "mate/AGENT_INSTRUCTIONS.md", build_skill):
+        content = materialized.read_text()
+        if new_marker not in content or old_marker in content:
+            raise RuntimeError(f"The updated package's Mate refresh did not replace old guidance: {materialized.relative_to(application)}")
+    if consumer_instruction_parts(instructions.read_text()) != custom_instructions:
+        raise RuntimeError("Composer update changed consumer-owned instructions")
+    if component.read_bytes() != component_content:
+        raise RuntimeError("Composer update changed an application-owned custom component")
+    catalog = operation_result(execute([php, "vendor/bin/mate", "tools:call", "uxorscient_catalog",
+                                       "--query=modal", "--limit=1", "--format=json"], application, capture=True), "catalog")
+    if catalog is None or catalog.get("status") != "completed" or catalog.get("reference", {}).get("version") != "0.0.1":
+        raise RuntimeError("The updated Mate tool does not report the newly installed companion version")
+    print("Composer update and native Mate refresh verified: newer archive installed; guidance and skills replaced; consumer instructions and custom component preserved.")
+
+
 def check_consumer(archive: Path, temporary: Path) -> None:
     application = temporary / "consumer"
     tracked = execute(["git", "ls-files", "-z", "--", "dev/app"], ROOT, capture=True)
@@ -128,14 +204,12 @@ def check_consumer(archive: Path, temporary: Path) -> None:
     (application / "composer.lock").unlink(missing_ok=True)
     manifest_path = application / "composer.json"
     manifest = json.loads(manifest_path.read_text())
-    with tarfile.open(archive, mode="r:") as package:
-        exported = package.extractfile("composer.json")
-        if exported is None:
-            raise RuntimeError("Archive Composer metadata cannot be read")
-        dependency = json.load(exported)
-    dependency.update({"version": "0.0.0", "dist": {"type": "tar", "url": archive.as_uri()}})
-    manifest["repositories"] = [{"type": "package", "package": dependency}]
-    manifest["require-dev"]["xormania/uxorscient"] = "0.0.0"
+    first_archive = temporary / "uxorscient-0.0.0.tar"
+    second_archive = temporary / "uxorscient-0.0.1.tar"
+    old_marker = versioned_archive(archive, first_archive, "0.0.0")
+    new_marker = versioned_archive(archive, second_archive, "0.0.1")
+    manifest["repositories"] = [archive_repository(first_archive)]
+    manifest["require-dev"]["xormania/uxorscient"] = "0.0.*"
     manifest_path.write_text(json.dumps(manifest, indent=4) + "\n")
     (application / ".env.local").write_text("APP_SECRET=" + secrets.token_hex(32) + "\n")
     # The fixture's repository wrapper is replaced by the independent application's invocation.
@@ -189,7 +263,13 @@ return static function (ContainerConfigurator $container): void {
             raise RuntimeError("A companion skill was discovered but not installed for agents")
     if "UXorscient" not in (application / "mate/AGENT_INSTRUCTIONS.md").read_text():
         raise RuntimeError("Packaged UXorscient instructions were not materialized for agents")
+    build = next(skill for skill in companion_skills if skill["original_name"] == "build")
+    build_skill = application / ".agents/skills" / build["installed_name"] / "SKILL.md"
+    for materialized in (application / "mate/AGENT_INSTRUCTIONS.md", build_skill):
+        if old_marker not in materialized.read_text():
+            raise RuntimeError("The first archive's agent guidance was not installed before the update")
     print("Independent archive consumer: Mate operation, reference, provenance, three skills and repeated initialization verified.")
+    check_update(application, manifest, second_archive, old_marker, new_marker, build_skill)
 
     execute([php, "bin/console", "importmap:install", "--no-interaction"], application)
     execute([*composer_command(), "install", "--no-dev", "--prefer-dist", "--no-interaction", "--no-progress"], application)
