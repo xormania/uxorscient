@@ -3,6 +3,7 @@ import importlib.util
 import contextlib
 from pathlib import Path
 import tempfile
+import subprocess
 import unittest
 from unittest.mock import Mock, patch
 
@@ -12,6 +13,22 @@ SPEC.loader.exec_module(runner)
 
 
 class DevelopmentRunnerTest(unittest.TestCase):
+    def test_provider_rejects_an_untracked_import_before_loading_code(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            checkout = Path(temporary)
+            subprocess.run(["git", "init", "--quiet", str(checkout)], check=True)
+            (checkout / "scripts").mkdir()
+            (checkout / "scripts/provider.py").write_text("PINNED = True\n")
+            subprocess.run(["git", "-C", str(checkout), "add", "scripts/provider.py"], check=True)
+            subprocess.run(["git", "-C", str(checkout), "-c", "user.name=xormania", "-c",
+                            "user.email=xormania@users.noreply.github.com", "commit", "--quiet", "-m", "provider fixture"], check=True)
+            revision = subprocess.check_output(["git", "-C", str(checkout), "rev-parse", "HEAD"], text=True).strip()
+            with patch.dict(runner.os.environ, {"XORDER_DIR": str(checkout)}), patch.object(runner, "XORDER_REVISION", revision):
+                self.assertEqual(checkout, runner.xorder_source())
+                (checkout / "scripts/subprocess.py").write_text("raise RuntimeError('unreviewed import executed')\n")
+                with self.assertRaisesRegex(ValueError, "untracked modifications"):
+                    runner.xorder_source()
+
     def test_worktrees_have_separate_stack_names_and_default_ports(self):
         first = runner.workspace_identity(Path("/work/one"))
         second = runner.workspace_identity(Path("/work/two"))
