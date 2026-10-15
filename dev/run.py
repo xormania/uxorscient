@@ -117,7 +117,11 @@ def current_support(module, env: dict[str, str]):
         with contextlib.redirect_stdout(sys.stderr):
             module.fetch_cli(arguments)
         snapshot.chmod(0o600)
-        yield dict(env, XORDER_SUPPORT_POLICY_FILE=str(snapshot))
+        checked_env = dict(env, XORDER_SUPPORT_POLICY_FILE=str(snapshot))
+        # The URL selected acquisition; the completed receipt is now the single
+        # policy input. Upstream correctly rejects two simultaneous inputs.
+        checked_env.pop("XORDER_SUPPORT_POLICY_URL", None)
+        yield checked_env
 
 
 def prepare_image(env: dict[str, str], *, serena: bool = False):

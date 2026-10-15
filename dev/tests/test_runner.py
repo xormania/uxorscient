@@ -64,11 +64,13 @@ class DevelopmentRunnerTest(unittest.TestCase):
         module = Mock(DEFAULT_POLICY_URL="https://canonical.example/policy")
         module.fetch_cli.side_effect = lambda args: args.output.write_text('{"policy": {}, "receipt": {}}')
         with tempfile.TemporaryDirectory() as temporary, patch.object(runner, "ROOT", Path(temporary)):
-            with runner.current_support(module, {}) as env:
+            with runner.current_support(module, {"XORDER_SUPPORT_POLICY_URL": module.DEFAULT_POLICY_URL}) as env:
                 snapshot = Path(env["XORDER_SUPPORT_POLICY_FILE"])
                 self.assertTrue(snapshot.is_file())
                 self.assertEqual(0o600, snapshot.stat().st_mode & 0o777)
                 self.assertEqual(0o700, snapshot.parent.stat().st_mode & 0o777)
+                self.assertNotIn("XORDER_SUPPORT_POLICY_URL", env)
+                self.assertEqual(module.DEFAULT_POLICY_URL, module.fetch_cli.call_args.args[0].policy_url)
                 module.fetch_cli.assert_called_once()
             self.assertFalse(snapshot.exists())
 
