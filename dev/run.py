@@ -13,6 +13,7 @@ import secrets
 import shutil
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 
@@ -91,6 +92,34 @@ def support_configuration(image: str, service: str = "php") -> dict:
     return {"services": {service: {"image": image}}}
 
 
+@contextlib.contextmanager
+def current_support(module, env: dict[str, str]):
+    """Acquire a completed receipt before the pinned provider checks its clock.
+
+    The pinned provider's direct online loader captures its check time before
+    network acquisition, then rejects the freshly acquired receipt as future.
+    Its supported fetch-then-check path preserves all freshness validation.
+    """
+    if env.get("XORDER_SUPPORT_POLICY_FILE"):
+        # Explicit offline input retains its original freshness and ownership.
+        yield env
+        return
+    state = ROOT / "dev/.state"
+    state.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="support-", dir=state) as temporary:
+        snapshot = Path(temporary) / "policy.json"
+        arguments = argparse.Namespace(
+            policy_url=env.get("XORDER_SUPPORT_POLICY_URL") or module.DEFAULT_POLICY_URL,
+            output=snapshot,
+        )
+        # fetch_cli validates canonical policy and writes its actual acquisition
+        # receipt atomically. Private unique directories avoid concurrent refresh races.
+        with contextlib.redirect_stdout(sys.stderr):
+            module.fetch_cli(arguments)
+        snapshot.chmod(0o600)
+        yield dict(env, XORDER_SUPPORT_POLICY_FILE=str(snapshot))
+
+
 def prepare_image(env: dict[str, str], *, serena: bool = False):
     require_docker()
     provider = xorder_source()
@@ -100,12 +129,13 @@ def prepare_image(env: dict[str, str], *, serena: bool = False):
     service = "serena" if serena else "php"
     support_env = dict(env, XORDER_SUPPORT_LOCK=str(lock))
     configuration = support_configuration(image, service)
-    with contextlib.redirect_stdout(sys.stderr):
-        prepared = module.runner_precheck(ROOT, support_env, configuration)
-    # Pull only after the current support policy has accepted this selection.
-    run(["docker", "pull", "--platform", "linux/amd64", image], env=env, stderr_only=serena)
-    with contextlib.redirect_stdout(sys.stderr):
-        module.runner_check(ROOT, support_env, configuration=configuration, prepared=prepared)
+    with current_support(module, support_env) as checked_env:
+        with contextlib.redirect_stdout(sys.stderr):
+            prepared = module.runner_precheck(ROOT, checked_env, configuration)
+        # Pull only after the current support policy has accepted this selection.
+        run(["docker", "pull", "--platform", "linux/amd64", image], env=env, stderr_only=serena)
+        with contextlib.redirect_stdout(sys.stderr):
+            module.runner_check(ROOT, checked_env, configuration=configuration, prepared=prepared)
     return provider, module, support_env
 
 
@@ -123,8 +153,9 @@ def check_running_support(env: dict[str, str]) -> None:
     if not ids:
         raise ValueError("The development application is not running; run dev/run.py up")
     containers = json.loads(run(["docker", "inspect", *ids], env=env, capture=True).stdout)
-    with contextlib.redirect_stdout(sys.stderr):
-        module.runner_check(ROOT, env, containers=containers)
+    with current_support(module, env) as checked_env:
+        with contextlib.redirect_stdout(sys.stderr):
+            module.runner_check(ROOT, checked_env, containers=containers)
 
 
 def native_command(argv: list[str]) -> list[str]:
@@ -256,8 +287,9 @@ def main(arguments=None) -> int:
         module = support_module(provider)
         image = locked_image(ROOT / "dev/serena-support.lock.json")
         support_env = dict(env, XORDER_SUPPORT_LOCK=str(ROOT / "dev/serena-support.lock.json"))
-        with contextlib.redirect_stdout(sys.stderr):
-            module.runner_check(ROOT, support_env, configuration=support_configuration(image, "serena"))
+        with current_support(module, support_env) as checked_env:
+            with contextlib.redirect_stdout(sys.stderr):
+                module.runner_check(ROOT, checked_env, configuration=support_configuration(image, "serena"))
         command = [sys.executable, str(provider / "examples/serena/run.py"), str(ROOT),
                    "--project", ".", "--image", image, "--languages", "php_phpactor,typescript",
                    "--cache-dir", str(ROOT / "dev/.state/serena-index"),

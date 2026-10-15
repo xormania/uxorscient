@@ -69,6 +69,13 @@ xorder's [documented freshness rules](https://github.com/xormania/xorder/blob/97
 Update the release group and image selections together after checking the
 replacement. Cached image bytes do not extend group support.
 
+For the pinned provider revision, online checks first run its canonical policy
+fetch operation, then check that completed receipt. This avoids its direct
+online-loader clock-order defect while retaining the provider's original
+freshness, policy and observed-image validation. Each check owns a private
+temporary receipt and removes it afterward. Explicit offline receipts are checked
+as supplied; the runner does not refresh their acquisition dates.
+
 The application uses FrankenPHP with project-owned Caddy configuration, a
 loopback HTTP port and per-worktree Compose project/volumes. Composer downloads
 persist in the stack's home volume. Source, installed dependencies and generated

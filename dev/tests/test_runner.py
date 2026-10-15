@@ -1,5 +1,6 @@
 """Exercise ownership, isolation and provider-check ordering without Docker."""
 import importlib.util
+import contextlib
 from pathlib import Path
 import tempfile
 import unittest
@@ -43,6 +44,7 @@ class DevelopmentRunnerTest(unittest.TestCase):
         module.runner_check.side_effect = lambda *args, **kwargs: events.append("observed")
         with patch.object(runner, "require_docker"), patch.object(runner, "xorder_source", return_value=Path("/provider")), \
                 patch.object(runner, "support_module", return_value=module), \
+                patch.object(runner, "current_support", side_effect=lambda module, env: contextlib.nullcontext(env)), \
                 patch.object(runner, "run", side_effect=lambda *args, **kwargs: events.append("pull")):
             runner.prepare_image(runner.environment())
         self.assertEqual(["policy", "pull", "observed"], events)
@@ -51,10 +53,31 @@ class DevelopmentRunnerTest(unittest.TestCase):
         module = Mock()
         module.runner_precheck.side_effect = ValueError("expired")
         with patch.object(runner, "require_docker"), patch.object(runner, "xorder_source", return_value=Path("/provider")), \
-                patch.object(runner, "support_module", return_value=module), patch.object(runner, "run") as command:
+                patch.object(runner, "support_module", return_value=module), \
+                patch.object(runner, "current_support", side_effect=lambda module, env: contextlib.nullcontext(env)), \
+                patch.object(runner, "run") as command:
             with self.assertRaisesRegex(ValueError, "expired"):
                 runner.prepare_image(runner.environment())
             command.assert_not_called()
+
+    def test_completed_support_receipt_is_private_and_scoped_to_one_check(self):
+        module = Mock(DEFAULT_POLICY_URL="https://canonical.example/policy")
+        module.fetch_cli.side_effect = lambda args: args.output.write_text('{"policy": {}, "receipt": {}}')
+        with tempfile.TemporaryDirectory() as temporary, patch.object(runner, "ROOT", Path(temporary)):
+            with runner.current_support(module, {}) as env:
+                snapshot = Path(env["XORDER_SUPPORT_POLICY_FILE"])
+                self.assertTrue(snapshot.is_file())
+                self.assertEqual(0o600, snapshot.stat().st_mode & 0o777)
+                self.assertEqual(0o700, snapshot.parent.stat().st_mode & 0o777)
+                module.fetch_cli.assert_called_once()
+            self.assertFalse(snapshot.exists())
+
+    def test_explicit_offline_receipt_is_checked_without_refresh_or_removal(self):
+        module = Mock()
+        env = {"XORDER_SUPPORT_POLICY_FILE": "/owned/policy.json"}
+        with runner.current_support(module, env) as selected:
+            self.assertEqual(env, selected)
+        module.fetch_cli.assert_not_called()
 
     def test_native_prepare_never_uses_docker_and_preserves_local_ownership(self):
         with tempfile.TemporaryDirectory() as temporary, patch.object(runner, "APP", Path(temporary)), \
