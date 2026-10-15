@@ -7,6 +7,10 @@ skill for the task, then read the relevant component references on demand.
 Discover installed tools with Mate's tools:list and inspect inputs before calling
 them. UXorscient provides component search/detail, bounded documentation reads,
 bound-project inspection, first-setup findings and native Maker/Mate metadata.
+Native metadata discovery executes the selected project's PHP/autoload code.
+It defaults to blocked. For a checkout already trusted and authorized for
+execution, pass trustProjectCode=true to uxorscient_tools or --trust-project-code
+to the standalone tools command; existing session authorization is sufficient.
 The tools have the uxorscient_ prefix. The uxorscient://catalog resource is a
 starting page; uxorscient://reference/INSTALL.md and component README resources
 provide detail. Use the reference tool's continuation offsets for long documents.

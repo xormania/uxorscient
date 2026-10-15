@@ -14,6 +14,8 @@ use Xormania\Uxorscient\Operations;
 use Xormania\Uxorscient\ProjectDoctor;
 use Xormania\Uxorscient\ProjectInspector;
 use Xormania\Uxorscient\ReferenceBundle;
+use Xormania\Uxorscient\Mate\Companion;
+use Symfony\AI\Mate\Encoding\ResponseEncoder;
 
 final class OperationsTest extends TestCase
 {
@@ -139,24 +141,43 @@ final class OperationsTest extends TestCase
     public function testNativeDiscoveryUsesBoundProjectAndRejectsCommandInput(): void
     {
         mkdir($this->directory.'/app/bin');
+        mkdir($this->directory.'/app/vendor');
+        file_put_contents($this->directory.'/app/vendor/autoload.php', '<?php file_put_contents(__DIR__."/autoload-executed", "yes");');
         file_put_contents($this->directory.'/app/bin/console', <<<'PHP'
 <?php
+require __DIR__.'/../vendor/autoload.php';
+file_put_contents(__DIR__.'/../entrypoint-executed', 'yes');
 if (['list', 'make', '--format=json', '--no-interaction'] !== array_slice($argv, 1)) { exit(9); }
 echo json_encode(['commands' => [['name' => 'make:controller', 'description' => getcwd()], ['name' => 'cache:clear']]]);
 PHP);
         $result = $this->operations->run('tools', ['project_root' => $this->directory.'/app']);
+        self::assertSame('incomplete', $result['status']);
+        self::assertFalse($result['data']['project_code_executed']);
+        self::assertSame('incomplete', $this->operations->run('tools', ['project_root' => $this->directory.'/app',
+            'trust_project_code' => 'false'])['status']);
+        $mate = new Companion($this->operations, $this->directory.'/app');
+        $blocked = ResponseEncoder::decode($mate->tools());
+        self::assertSame('incomplete', $blocked['untrusted_data']['status']);
+        self::assertFileDoesNotExist($this->directory.'/app/entrypoint-executed');
+        self::assertFileDoesNotExist($this->directory.'/app/vendor/autoload-executed');
+        $command = new CommandTester((new Application($this->operations))->find('tools'));
+        self::assertSame(0, $command->execute(['--project-root' => $this->directory.'/app', '--trust-project-code' => true, '--format' => 'json']));
+        $result = json_decode($command->getDisplay(), true, 512, JSON_THROW_ON_ERROR);
         self::assertSame('completed', $result['status'], json_encode($result));
         self::assertSame('make:controller', $result['data']['items'][0]['name']);
         self::assertSame(realpath($this->directory.'/app'), $result['data']['items'][0]['description']);
         self::assertSame(1, $result['data']['total']);
-        $result = $this->operations->run('tools', ['project_root' => $this->directory.'/app', 'name' => 'make:foo; touch nope']);
+        self::assertFileExists($this->directory.'/app/entrypoint-executed');
+        self::assertFileExists($this->directory.'/app/vendor/autoload-executed');
+        self::assertTrue($result['data']['evidence']['trust_project_code']);
+        $result = $this->operations->run('tools', ['project_root' => $this->directory.'/app', 'name' => 'make:foo; touch nope', 'trust_project_code' => true]);
         self::assertSame('failed', $result['status']);
         self::assertFileDoesNotExist($this->directory.'/app/nope');
     }
 
     public function testNativeDiscoveryReportsMissingAndMalformedMetadataWithoutRawErrors(): void
     {
-        $arguments = ['project_root' => $this->directory.'/app', 'kind' => 'mate'];
+        $arguments = ['project_root' => $this->directory.'/app', 'kind' => 'mate', 'trust_project_code' => true];
         self::assertSame('incomplete', $this->operations->run('tools', $arguments)['status']);
         mkdir($this->directory.'/app/vendor/bin', 0777, true);
         file_put_contents($this->directory.'/app/vendor/bin/mate', '<?php echo "not-json"; fwrite(STDERR, "secret-example");');

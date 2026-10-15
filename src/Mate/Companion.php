@@ -50,12 +50,13 @@ final class Companion
     /**
      * @param string $kind maker or mate
      * @param string $name Empty lists capabilities; an exact name returns native parameter definitions.
+     * @param bool $trustProjectCode Explicitly acknowledge execution of PHP/autoload code from the already trusted, authorized project.
      */
-    #[MateTool('uxorscient_tools', description: 'Discover actual installed Maker/Mate metadata in the bound application; does not execute generators or tools.')]
-    public function tools(string $kind = 'maker', string $name = '', int $limit = 20): string
+    #[MateTool('uxorscient_tools', description: 'Discover Maker/Mate metadata by booting the bound project and executing its PHP/autoload code. Requires trustProjectCode=true; fixed argv is not a sandbox.')]
+    public function tools(string $kind = 'maker', string $name = '', int $limit = 20, bool $trustProjectCode = false): string
     {
         return ResponseEncoder::encodeUntrusted($this->operations->run('tools',
-            ['project_root' => $this->projectRoot, 'kind' => $kind, 'name' => $name, 'limit' => $limit]));
+            ['project_root' => $this->projectRoot, 'kind' => $kind, 'name' => $name, 'limit' => $limit, 'trust_project_code' => $trustProjectCode]));
     }
 
     #[MateResource('uxorscient://catalog', name: 'UXor catalog', mimeType: 'application/json')]
