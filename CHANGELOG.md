@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Wait for the customer editor's initial focus before browser checks fill another field, preventing intermittent input being sent to Name instead of Email.
 - Establish development through `dev` and promotion to the default `master` branch, maintainer code ownership, community reporting guides and issue forms.
 - Establish the Composer package and independent Symfony development environment.
 - Package pinned UXor references and setup, build and verification skills.
